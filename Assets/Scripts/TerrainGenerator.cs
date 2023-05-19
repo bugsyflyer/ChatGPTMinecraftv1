@@ -4,11 +4,13 @@ using UnityEngine;
 
 public class TerrainGenerator : MonoBehaviour
 {
+    public GameObject grassBlock;
     public GameObject dirtBlock;
     public GameObject stoneBlock;
     public GameObject woodBlock;
     public GameObject leafBlock;
     public GameObject ironOreBlock;
+    public GameObject airBlock;
     public GameObject player;
     public int chunkSize = 32;
     public int maxHeight = 32;
@@ -110,8 +112,8 @@ public class TerrainGenerator : MonoBehaviour
                         // Generate iron ore clusters within caves
                         if (block.CompareTag("Stone") && y < height - 4)
                         {
-                            float rand = Random.Range(0.0f, 1.0f);
-                            if (rand < ironOreChance)
+                            float rand2 = Random.Range(0.0f, 1.0f);
+                            if (rand2 < ironOreChance)
                             {
                                 int clusterSize = Random.Range(ironOreClusterMinSize, ironOreClusterMaxSize + 1);
                                 GenerateIronOreCluster(chunkPos.x * chunkSize + x, y, chunkPos.y * chunkSize + z,
@@ -162,10 +164,9 @@ public class TerrainGenerator : MonoBehaviour
                     chunks[new Vector2Int(x / chunkSize, z / chunkSize)].transform);
             }
         }
-
-        Vector2Int GetPlayerChunkPos()
-        {
-            return new Vector2Int(Mathf.FloorToInt(player.transform.position.x / chunkSize), Mathf.FloorToInt(player.transform.position.z / chunkSize));
-        }
+    }
+    Vector2Int GetPlayerChunkPos()
+    {
+        return new Vector2Int(Mathf.FloorToInt(player.transform.position.x / chunkSize), Mathf.FloorToInt(player.transform.position.z / chunkSize));
     }
 }
