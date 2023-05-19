@@ -74,9 +74,8 @@ public class TerrainGenerator : MonoBehaviour
                         float rand = Random.Range(0.0f, 1.0f);
                         if (rand < caveChance)
                         {
-                            block = Instantiate(airBlock,
-                                new Vector3(chunkPos.x * chunkSize + x, y, chunkPos.y * chunkSize + z),
-                                Quaternion.identity, chunkObject.transform);
+                            GenerateCave(chunkPos.x * chunkSize + x, y, chunkPos.y * chunkSize + z);
+                            continue;
                         }
                         else
                         {
@@ -160,10 +159,54 @@ public class TerrainGenerator : MonoBehaviour
                 int y = startY + offsetY;
                 int z = startZ + offsetZ;
 
-                GameObject ironOre = Instantiate(ironOreBlock, new Vector3(x, y, z), Quaternion.identity,
+                Instantiate(ironOreBlock, new Vector3(x, y, z), Quaternion.identity,
                     chunks[new Vector2Int(x / chunkSize, z / chunkSize)].transform);
             }
         }
+        
+        void GenerateCave(int x, int y, int z)
+        {
+            int caveSize = Random.Range(5, 20); // Random cave size (1 to 3)
+            float caveRadius = Random.Range(2.0f, 5.0f); // Random cave radius
+
+            for (int xOffset = -caveSize; xOffset <= caveSize; xOffset++)
+            {
+                for (int yOffset = -caveSize; yOffset <= caveSize; yOffset++)
+                {
+                    for (int zOffset = -caveSize; zOffset <= caveSize; zOffset++)
+                    {
+                        float distance = Mathf.Sqrt(xOffset * xOffset + yOffset * yOffset + zOffset * zOffset);
+                        if (distance <= caveSize)
+                        {
+                            int caveX = x + xOffset;
+                            int caveY = y + yOffset;
+                            int caveZ = z + zOffset;
+
+                            DestroyBlock(caveX, caveY, caveZ); // Destroy the block within the cave
+                        }
+                    }
+                }
+            }
+        }
+        
+        void DestroyBlock(int x, int y, int z)
+        {
+            Vector2Int chunkPos = new Vector2Int(Mathf.FloorToInt(x / chunkSize), Mathf.FloorToInt(z / chunkSize));
+            Vector3 blockPos = new Vector3(x, y, z);
+
+            if (chunks.ContainsKey(chunkPos))
+            {
+                Transform chunkTransform = chunks[chunkPos].transform;
+                Block block = chunkTransform.GetComponentInChildren<Block>();
+
+                if (block != null)
+                {
+                    // Destroy the block game object
+                    Destroy(block.gameObject);
+                }
+            }
+        }
+        
     }
     Vector2Int GetPlayerChunkPos()
     {

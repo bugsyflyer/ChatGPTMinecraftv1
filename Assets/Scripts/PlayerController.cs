@@ -58,14 +58,16 @@ public class PlayerController : MonoBehaviour
         
         // Player movement
         Vector3 movementC = new Vector3(horizontalInput, 0f, verticalInput);
-        movementC = transform.TransformDirection(movementC);
+        movementC = cameraTransform.TransformDirection(movementC);
+        movementC.y = 0f; // Ignore vertical movement
+        movementC.Normalize();
         transform.position += movementC * Time.deltaTime;
 
         // Breaking blocks
         if (Input.GetMouseButtonDown(0))
         {
             RaycastHit hit;
-            if (Physics.Raycast(transform.position, transform.forward, out hit))
+            if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out hit))
             {
                 Block block = hit.collider.GetComponent<Block>();
                 if (block != null)
