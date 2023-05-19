@@ -5,77 +5,97 @@ public class PlayerController : MonoBehaviour
     public float jumpHeight = 1.5f;
     public float walkSpeed = 2f;
     public float sprintSpeed = 4f;
-    public float fallDamageThreshold = 9f;
     public int startingHealth = 100;
-    public Transform firstPersonCamera;
+    public int fallDamageThreshold = 9;
+    public GameObject sword;
+    public GameObject pickaxe;
 
     private Rigidbody rb;
-    private bool isGrounded = true;
+    private bool isGrounded = false;
+    private bool isSprinting = false;
     private int currentHealth;
+    
+    public Transform cameraTransform;
+    public float mouseSensitivity = 2f;
+    public float maxLookUpAngle = 90f;
+    public float maxLookDownAngle = -90f;
 
-    public GameObject dirtPrefab;
-    public GameObject stonePrefab;
-    public GameObject woodPrefab;
+    private float verticalRotation = 0f;
 
-    private void Start()
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
         currentHealth = startingHealth;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
-    private void Update()
+    void Update()
     {
-        // Player movement
-        float moveSpeed = Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : walkSpeed;
-        float horizontalMovement = Input.GetAxis("Horizontal") * moveSpeed;
-        float verticalMovement = Input.GetAxis("Vertical") * moveSpeed;
+        // Camera rotation
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        Vector3 movement = new Vector3(horizontalMovement, 0f, verticalMovement);
-        movement = Vector3.ClampMagnitude(movement, moveSpeed); // Limit diagonal movement speed
+        verticalRotation -= mouseY;
+        verticalRotation = Mathf.Clamp(verticalRotation, maxLookDownAngle, maxLookUpAngle);
 
-        rb.velocity = new Vector3(movement.x, rb.velocity.y, movement.z);
+        transform.Rotate(Vector3.up * mouseX);
+        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        
 
         // Jumping
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (isGrounded && Input.GetButtonDown("Jump"))
         {
             rb.AddForce(Vector3.up * Mathf.Sqrt(jumpHeight * -2f * Physics.gravity.y), ForceMode.VelocityChange);
         }
 
-        // Falling damage
-        if (transform.position.y < -fallDamageThreshold)
-        {
-            int fallDamage = Mathf.RoundToInt(Mathf.Abs(transform.position.y - (-fallDamageThreshold)));
-            TakeDamage(fallDamage);
-        }
+        // Walking and sprinting
+        float moveSpeed = isSprinting ? sprintSpeed : walkSpeed;
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
+        Vector3 movement = new Vector3(horizontalInput, 0f, verticalInput).normalized * moveSpeed;
+        rb.MovePosition(transform.position + movement * Time.deltaTime);
+        
+        // Player movement
+        Vector3 movementC = new Vector3(horizontalInput, 0f, verticalInput);
+        movementC = transform.TransformDirection(movementC);
+        transform.position += movementC * Time.deltaTime;
 
-        // Block interaction
+        // Breaking blocks
         if (Input.GetMouseButtonDown(0))
         {
-            // Left mouse button: Break block or attack with sword
-            BreakBlockOrAttack();
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, transform.forward, out hit))
+            {
+                Block block = hit.collider.GetComponent<Block>();
+                if (block != null)
+                {
+                    // Check if the block can be broken with the current tool (sword, pickaxe, etc.)
+                    block.Break();
+                }
+            }
         }
-        else if (Input.GetMouseButtonDown(1))
+
+        // Eating food
+        if (Input.GetButtonDown("Eat"))
         {
-            // Right mouse button: Place block
-            PlaceBlock();
+            EatFood();
         }
+    }
 
-        // Camera rotation
-        float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
-
-        // Rotate the player left/right
-        transform.Rotate(Vector3.up, mouseX);
-
-        // Rotate the camera up/down
-        Vector3 cameraRotation = firstPersonCamera.rotation.eulerAngles;
-        cameraRotation.x -= mouseY;
-        cameraRotation.x = Mathf.Clamp(cameraRotation.x, -90f, 90f);
-        firstPersonCamera.rotation = Quaternion.Euler(cameraRotation);
+    private void FixedUpdate()
+    {
+        // Falling and fall damage
+        if (rb.velocity.y < -fallDamageThreshold)
+        {
+            int damage = Mathf.RoundToInt(Mathf.Abs(rb.velocity.y - fallDamageThreshold));
+            TakeDamage(damage);
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Ground detection
         if (collision.gameObject.CompareTag("Ground"))
         {
             isGrounded = true;
@@ -84,84 +104,21 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionExit(Collision collision)
     {
+        // Ground detection
         if (collision.gameObject.CompareTag("Ground"))
         {
             isGrounded = false;
         }
     }
 
-    private void BreakBlockOrAttack()
-    {
-        // Raycast to detect block or enemy
-        RaycastHit hit;
-        if (Physics.Raycast(firstPersonCamera.position, firstPersonCamera.forward, out hit))
-        {
-            Block block = hit.collider.GetComponent<Block>();
-            if (block != null)
-            {
-                // Break the block
-                block.Break();
-            }
-            //else
-            //{
-                //Enemy enemy = hit.collider.GetComponent<Enemy>();
-                //if (enemy != null)
-                //{
-                    // Attack the enemy
-                    //enemy.TakeDamage(10); // Adjust damage value as needed
-                //}
-           // }
-        }
-    }
-
-    private void PlaceBlock()
-    {
-        // Raycast to find the position to place the block
-        RaycastHit hit;
-        if (Physics.Raycast(firstPersonCamera.position, firstPersonCamera.forward, out hit))
-        {
-            Vector3 placePosition = hit.point + hit.normal / 2f; // Offset the block placement
-
-            // Instantiate and place the block at the position
-            GameObject blockPrefab = GetSelectedBlockPrefab(); // Implement your own method to get the selected block prefab
-            Instantiate(blockPrefab, placePosition, Quaternion.identity);
-        }
-    }
-
-    public void TakeDamage(int damage)
+    private void TakeDamage(int damage)
     {
         currentHealth -= damage;
-
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        // Handle damage, such as updating health UI, checking for death, etc.
     }
 
-    private void Die()
+    private void EatFood()
     {
-        // Handle player death
+        // Handle eating food, such as increasing health, updating UI, etc.
     }
-    
-    private GameObject GetSelectedBlockPrefab()
-    {
-        GameObject selectedBlockPrefab = null;
-
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            selectedBlockPrefab = dirtPrefab; // Assuming dirtPrefab is a reference to the dirt block prefab
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            selectedBlockPrefab = stonePrefab; // Assuming stonePrefab is a reference to the stone block prefab
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            selectedBlockPrefab = woodPrefab; // Assuming woodPrefab is a reference to the wood block prefab
-        }
-
-        return selectedBlockPrefab;
-    }
-
 }
-

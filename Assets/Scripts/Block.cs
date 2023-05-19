@@ -2,15 +2,35 @@ using UnityEngine;
 
 public class Block : MonoBehaviour
 {
-    public int durability = 100; // Durability of the block
+    private bool isVisible = false;
+
+    public void SetVisible(bool visible)
+    {
+        isVisible = visible;
+        if (isVisible)
+        {
+            GetComponent<MeshRenderer>().enabled = true;
+            GetComponent<Collider>().enabled = true;
+        }
+        else
+        {
+            GetComponent<MeshRenderer>().enabled = false;
+            GetComponent<Collider>().enabled = false;
+        }
+    }
 
     public void Break()
     {
-        durability -= 25; // Reduce the durability of the block
+        // Play particle effects, remove the block, etc.
+        Destroy(gameObject);
+    }
 
-        if (durability <= 0)
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
         {
-            Destroy(gameObject); // Destroy the block when its durability reaches zero
+            // Handle collision with the player, such as taking fall damage
+            // and breaking blocks with a pickaxe or sword
         }
     }
 }
