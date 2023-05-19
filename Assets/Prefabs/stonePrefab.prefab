@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4756659440716062749}
   m_Layer: 0
   m_Name: stonePrefab
-  m_TagString: Stone
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

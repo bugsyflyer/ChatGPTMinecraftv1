@@ -159,7 +159,7 @@ public class TerrainGenerator : MonoBehaviour
                 int y = startY + offsetY;
                 int z = startZ + offsetZ;
 
-                GameObject ironOre = Instantiate(ironOreBlock, new Vector3(x, y, z), Quaternion.identity,
+                Instantiate(ironOreBlock, new Vector3(x, y, z), Quaternion.identity,
                     chunks[new Vector2Int(x / chunkSize, z / chunkSize)].transform);
             }
         }
